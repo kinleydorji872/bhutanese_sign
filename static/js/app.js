@@ -40,16 +40,53 @@ dropzone.addEventListener("drop",event=>{
   const transfer=new DataTransfer();transfer.items.add(file);input.files=transfer.files;setFile(file);
 });
 async function startCamera(){
-  if(!navigator.mediaDevices?.getUserMedia){cameraHelp.textContent="Camera access is unavailable in this browser. Open the site using HTTPS or choose an image instead.";return}
+  if(!window.isSecureContext){
+    cameraHelp.textContent="Camera requires a secure HTTPS page. Open the official https:// website, not an http:// link.";
+    return;
+  }
+  if(!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia!=="function"){
+    cameraHelp.textContent="This browser does not expose camera access. Try the latest Chrome or Edge, or upload an image.";
+    return;
+  }
+  startCameraButton.disabled=true;
+  cameraHelp.textContent="Requesting camera permission. If your browser asks, choose Allow.";
   try{
-    cameraHelp.textContent="Waiting for camera permission…";
-    cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}},audio:false});
-    video.srcObject=cameraStream;video.hidden=false;cameraPlaceholder.hidden=true;
-    await video.play();startCameraButton.disabled=true;captureButton.disabled=false;stopCameraButton.disabled=false;
-    cameraHelp.textContent="Camera is on. Position one hand clearly in the frame, then capture.";
+    let stream;
+    try{
+      stream=await navigator.mediaDevices.getUserMedia({
+        video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}},
+        audio:false
+      });
+    }catch(firstError){
+      // Some laptop webcams do not support preferred camera constraints; retry with defaults.
+      if(firstError.name==="NotFoundError" || firstError.name==="NotAllowedError" || firstError.name==="SecurityError") throw firstError;
+      stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
+    }
+    cameraStream=stream;
+    video.srcObject=stream;
+    video.hidden=false;
+    cameraPlaceholder.hidden=true;
+    try{await video.play();}catch(playError){
+      // A stream can be granted but playback may need a second user gesture.
+      cameraHelp.textContent="Camera permission granted. Press Start camera again if the preview does not appear.";
+      throw playError;
+    }
+    captureButton.disabled=false;
+    stopCameraButton.disabled=false;
+    cameraHelp.textContent="Camera is on. Position one hand clearly in the frame, then press Capture photo.";
   }catch(error){
-    const reason=error.name==="NotAllowedError"?"Camera permission was denied. Allow camera access in your browser settings and try again.":error.name==="NotFoundError"?"No camera was found. Connect a camera or upload an image.":"Could not start the camera. Check that another app is not using it, then try again.";
-    cameraHelp.textContent=reason;
+    if(cameraStream){cameraStream.getTracks().forEach(track=>track.stop());cameraStream=null;}
+    video.srcObject=null;video.hidden=true;cameraPlaceholder.hidden=false;
+    startCameraButton.disabled=false;
+    const errors={
+      NotAllowedError:"Camera permission is blocked. In Edge/Chrome, select the lock or site-controls icon beside the address bar, set Camera to Allow, then reload this page.",
+      PermissionDeniedError:"Camera permission is blocked. Allow camera access in the browser's site settings, then reload.",
+      NotFoundError:"No camera was found. Connect or enable a webcam, or use Upload an image.",
+      NotReadableError:"The camera is busy or unavailable. Close Camera, Teams, Zoom, or other apps using it, then try again.",
+      OverconstrainedError:"The camera does not support the requested settings. Check that the webcam is enabled and try again.",
+      SecurityError:"The browser blocked camera access for security reasons. Open this site over HTTPS and check site permissions."
+    };
+    cameraHelp.textContent=errors[error.name]||("Could not start the camera ("+(error.name||"unknown error")+"). Check browser camera permission and whether another app is using the webcam, then try again.");
   }
 }
 function stopCamera(){
