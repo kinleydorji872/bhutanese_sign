@@ -1,131 +1,62 @@
-"""Local webcam recognition for trained Bhutanese sign digit/alphabet CNNs."""
-from __future__ import annotations
+"""Web demo entrypoint for Vercel. The ML webcam app lives in scripts/webcam_app.py."""
+from flask import Flask, render_template_string
 
-import json
-from pathlib import Path
+app = Flask(__name__)
 
-import cv2
-import numpy as np
-import tensorflow as tf
+PAGE = r"""
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bhutanese Sign Language Recognition</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--panel:#131e31;--text:#eef4ff;--muted:#a8b7d1;--accent:#65d6c4}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(140deg,#0b1220,#142641);font:16px/1.6 system-ui,-apple-system,Segoe UI,sans-serif;color:var(--text)}
+main{max-width:900px;margin:auto;padding:32px 18px 60px}.tag{color:var(--accent);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:.8rem}
+h1{font-size:clamp(2rem,5vw,3.5rem);line-height:1.1;margin:.5rem 0 1rem}.muted{color:var(--muted)}
+.panel{background:var(--panel);border:1px solid #2a3a55;border-radius:18px;padding:22px;margin:20px 0}
+.actions{display:flex;flex-wrap:wrap;gap:12px}button,a.button{border:0;border-radius:10px;padding:12px 16px;font:inherit;font-weight:700;cursor:pointer;text-decoration:none}
+button{background:var(--accent);color:#08201e}a.button{background:#263954;color:var(--text)}
+video{width:100%;max-height:420px;background:#05080e;border-radius:12px;margin-top:14px;display:none}
+.notice{border-left:4px solid #eabf66;padding:12px 14px;background:#2b281e;border-radius:8px}
+input{display:block;margin:12px 0;max-width:100%}footer{margin-top:30px;color:var(--muted);font-size:.9rem}
+</style>
+</head>
+<body><main>
+<div class="tag">Prototype · Bhutan</div>
+<h1>Bhutanese Sign Language Recognition</h1>
+<p class="muted">A project exploring recognition of Bhutanese sign-language digits and alphabet signs.</p>
+<div class="panel">
+<h2>Try the camera preview</h2>
+<p class="muted">This confirms browser camera access only. It does not yet recognise signs in this hosted version.</p>
+<div class="actions"><button id="start">Start camera</button><button id="stop" disabled>Stop camera</button></div>
+<video id="video" autoplay playsinline muted></video>
+<p id="cameraStatus" class="muted" aria-live="polite">Camera is off.</p>
+</div>
+<div class="panel">
+<h2>Recognition status</h2>
+<div class="notice"><strong>Model not deployed yet.</strong><br>The repository currently does not contain trained model weights. Train and validate the model before showing predictions here.</div>
+<p>For local webcam inference, follow the setup and training instructions in the GitHub README, then run <code>python scripts/webcam_app.py</code>.</p>
+<div class="actions"><a class="button" href="https://github.com/kinleydorji872/bhutanese_sign" target="_blank" rel="noreferrer">View source on GitHub</a></div>
+</div>
+<div class="panel">
+<h2>Project roadmap</h2>
+<ol><li>Prepare correctly labelled Bhutanese Sign Language image data.</li><li>Train the digit model and evaluate it on held-out signers.</li><li>Collect a separately verified alphabet dataset before enabling alphabet recognition.</li><li>Integrate a trained model into a secure inference endpoint and test on phones and laptops.</li></ol>
+</div>
+<footer>Experimental educational prototype. Do not rely on it as an authoritative translation service.</footer>
+</main>
+<script>
+const video=document.getElementById('video'),start=document.getElementById('start'),stop=document.getElementById('stop'),status=document.getElementById('cameraStatus');let stream=null;
+start.addEventListener('click',async()=>{try{if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('Camera access is not supported in this browser.');stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});video.srcObject=stream;video.style.display='block';start.disabled=true;stop.disabled=false;status.textContent='Camera preview is running. Recognition is not enabled yet.';}catch(e){status.textContent='Could not start camera: '+e.message+' Check browser permissions and use HTTPS.';}});
+stop.addEventListener('click',()=>{if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;video.style.display='none';start.disabled=false;stop.disabled=true;status.textContent='Camera is off.';});
+</script></body></html>
+"""
 
-ROOT = Path(__file__).resolve().parent
-MODEL_CONFIG = {
-    "digits": {
-        "model": ROOT / "models" / "digits.keras",
-        "labels": ROOT / "models" / "digits_labels.json",
-        "title": "Bhutanese Sign Digits",
-    },
-    "alphabet": {
-        "model": ROOT / "models" / "letters.keras",
-        "labels": ROOT / "models" / "letters_labels.json",
-        "title": "Bhutanese Sign Alphabet",
-    },
-}
-IMAGE_SIZE = (64, 64)
-CONFIDENCE_THRESHOLD = 0.70
+@app.route("/", methods=["GET"])
+def home():
+    return render_template_string(PAGE)
 
-
-def load_model_for(mode):
-    cfg = MODEL_CONFIG[mode]
-    if not cfg["model"].exists() or not cfg["labels"].exists():
-        raise FileNotFoundError(
-            f"Missing trained {mode} model. Train it first using the commands in README.md.\n"
-            f"Expected model: {cfg['model']}\nExpected labels: {cfg['labels']}"
-        )
-    model = tf.keras.models.load_model(cfg["model"])
-    with cfg["labels"].open("r", encoding="utf-8") as f:
-        labels = json.load(f)
-    return model, labels
-
-
-def preprocess(frame):
-    image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    image = cv2.resize(image, IMAGE_SIZE, interpolation=cv2.INTER_AREA)
-    image = image.astype("float32") / 255.0
-    return np.expand_dims(image, axis=0)
-
-
-def draw_text(frame, text, position, scale=0.7, color=(255, 255, 255), thickness=2):
-    cv2.putText(frame, text, position, cv2.FONT_HERSHEY_SIMPLEX, scale, color, thickness, cv2.LINE_AA)
-
-
-def main():
-    print("Bhutanese Sign Language Recognition")
-    print("Press 1 = digits | 2 = alphabet | q/Esc = quit")
-    mode = "digits"
-    loaded = {}
-    prediction_text = "Show a sign to the camera"
-    confidence = 0.0
-    frame_count = 0
-    smooth_probs = []
-
-    cap = cv2.VideoCapture(0)
-    if not cap.isOpened():
-        print("Could not open camera 0. Close other camera apps or try camera index 1 in app.py.")
-        return
-
-    try:
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 960)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-        while True:
-            ok, frame = cap.read()
-            if not ok:
-                print("Unable to read a webcam frame.")
-                break
-            frame = cv2.flip(frame, 1)
-
-            if mode not in loaded:
-                try:
-                    loaded[mode] = load_model_for(mode)
-                except (FileNotFoundError, OSError, ValueError) as exc:
-                    prediction_text = "Model not trained yet"
-                    model_error = str(exc).splitlines()[0]
-                else:
-                    model_error = ""
-
-            frame_count += 1
-            if mode in loaded and frame_count % 2 == 0:
-                model, labels = loaded[mode]
-                probs = model.predict(preprocess(frame), verbose=0)[0]
-                smooth_probs.append(probs)
-                smooth_probs = smooth_probs[-5:]
-                avg_probs = np.mean(smooth_probs, axis=0)
-                best = int(np.argmax(avg_probs))
-                confidence = float(avg_probs[best])
-                label = str(labels.get(str(best), best))
-                prediction_text = label if confidence >= CONFIDENCE_THRESHOLD else "Uncertain"
-
-            overlay = frame.copy()
-            cv2.rectangle(overlay, (0, 0), (frame.shape[1], 120), (20, 25, 35), -1)
-            frame = cv2.addWeighted(overlay, 0.82, frame, 0.18, 0)
-            draw_text(frame, MODEL_CONFIG[mode]["title"], (20, 32), 0.75, (120, 220, 255))
-            draw_text(frame, f"Prediction: {prediction_text}", (20, 72), 0.9)
-            draw_text(frame, f"Confidence: {confidence:.1%}", (20, 105), 0.58)
-            draw_text(frame, "1 Digits  |  2 Alphabet  |  Q Quit", (20, frame.shape[0] - 20), 0.65, (230, 230, 230))
-
-            if mode not in loaded:
-                draw_text(frame, "Train the selected model first (see README.md)", (20, 155), 0.6, (80, 180, 255))
-                if 'model_error' in locals():
-                    draw_text(frame, model_error[:100], (20, 185), 0.45, (80, 180, 255))
-
-            cv2.imshow("Bhutanese Sign Language Recognition", frame)
-            key = cv2.waitKey(1) & 0xFF
-            if key in (ord("q"), 27):
-                break
-            elif key == ord("1") and mode != "digits":
-                mode = "digits"
-                smooth_probs = []
-                prediction_text = "Show a sign to the camera"
-                confidence = 0.0
-            elif key == ord("2") and mode != "alphabet":
-                mode = "alphabet"
-                smooth_probs = []
-                prediction_text = "Show a sign to the camera"
-                confidence = 0.0
-    finally:
-        cap.release()
-        cv2.destroyAllWindows()
-
-
-if __name__ == "__main__":
-    main()
+@app.route("/api/health", methods=["GET"])
+def health():
+    return {"status": "ok", "recognition_model": "not_deployed"}, 200
