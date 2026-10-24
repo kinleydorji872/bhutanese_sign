@@ -9,31 +9,43 @@
 </head>
 <body>
 <header class="topbar">
-  <a class="brand" href="/" aria-label="Home"><span class="brand-mark">འ</span><span><strong>BhSL Studio</strong><small>BHUTANESE SIGN LANGUAGE</small></span></a>
-  <div class="status"><span class="status-dot"></span> Image recognition</div>
+  <a class="brand" href="/" aria-label="BhSL Studio home"><span class="brand-mark">འ</span><span><strong>BhSL Studio</strong><small>BHUTANESE SIGN LANGUAGE</small></span></a>
+  <div class="status"><span class="status-dot"></span> Camera &amp; image recognition</div>
 </header>
 <main class="layout">
   <section class="intro">
     <div class="eyebrow"><span class="eyebrow-line"></span> ACCESSIBILITY THROUGH TECHNOLOGY</div>
     <h1>Every gesture<br>has a <em>voice.</em></h1>
-    <p class="intro-copy">Upload a sign image and let the recognition model help interpret it. Designed for desktop and mobile.</p>
-    <div class="trust-row"><span>01&nbsp; Upload image</span><span>02&nbsp; Analyze sign</span><span>03&nbsp; View result</span></div>
+    <p class="intro-copy">Use your laptop or phone camera to capture a sign, or choose an existing image. The recognition model will analyze the image.</p>
+    <div class="trust-row"><span>01&nbsp; Capture or upload</span><span>02&nbsp; Analyze sign</span><span>03&nbsp; View result</span></div>
     <div class="decor decor-one"></div><div class="decor decor-two"></div>
   </section>
   <section class="workspace">
     <div class="section-heading"><div><span class="step">01</span><h2>Recognition workspace</h2></div><span class="pill">BETA</span></div>
-    <p class="subheading">Add a clear photo of one hand making a sign.</p>
+    <p class="subheading">Allow camera access, then capture one clearly visible hand sign.</p>
+    <label class="field-label" for="mode">SIGN CATEGORY</label>
+    <select id="mode" name="mode"><option value="digits">Digits · 0–9</option><option value="alphabet">Alphabet · A–Z (requires alphabet model)</option></select>
+
+    <section class="camera-section" aria-labelledby="camera-heading">
+      <div class="section-kicker"><span class="step">A</span><div><h3 id="camera-heading">Use your camera</h3><p>Works with a built-in or connected camera.</p></div></div>
+      <div class="camera-frame" id="camera-frame">
+        <video id="camera-video" autoplay playsinline muted hidden></video>
+        <div class="camera-placeholder" id="camera-placeholder"><span class="camera-glyph">⌁</span><strong>Your camera preview appears here</strong><span>Camera access is only requested when you press “Start camera”.</span></div>
+        <canvas id="capture-canvas" hidden></canvas>
+      </div>
+      <div class="camera-actions"><button type="button" class="secondary-button" id="start-camera">Start camera</button><button type="button" class="secondary-button" id="capture-photo" disabled>Capture photo</button><button type="button" class="quiet-button" id="stop-camera" disabled>Turn off</button></div>
+      <p class="camera-help" id="camera-help" aria-live="polite">Tip: use good lighting and keep the hand inside the frame.</p>
+    </section>
+
+    <div class="or-divider"><span>OR UPLOAD AN IMAGE</span></div>
     <form id="recognition-form">
-      <label for="mode">SIGN CATEGORY</label>
-      <select id="mode" name="mode"><option value="digits">Digits · 0–9</option><option value="alphabet">Alphabet · A–Z (requires alphabet model)</option></select>
-      <label class="upload-label" for="image">SIGN IMAGE</label>
-      <input id="image" name="image" type="file" accept="image/jpeg,image/png,image/webp" required hidden>
-      <label class="dropzone" id="dropzone" for="image"><span class="upload-icon">↑</span><strong>Drop your image here</strong><span class="muted">or <u>browse files</u> from your device</span><span class="file-hint">JPG, PNG or WEBP · up to 4 MB</span></label>
-      <div class="preview-wrap" id="preview-wrap" hidden><img id="preview" alt="Preview of the selected hand sign"><div class="preview-meta"><span id="file-name"></span><button type="button" class="text-button" id="remove-image">Remove</button></div></div>
+      <input id="image" name="image" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+      <label class="dropzone" id="dropzone" for="image"><span class="upload-icon">↑</span><strong>Choose or drop an image</strong><span class="muted">Browse files on your device</span><span class="file-hint">JPG, PNG or WEBP · up to 4 MB</span></label>
+      <div class="preview-wrap" id="preview-wrap" hidden><img id="preview" alt="Preview of the selected hand sign"><div class="preview-meta"><span id="file-name"></span><button type="button" class="text-button" id="remove-image">Remove image</button></div></div>
       <button class="primary-button" id="submit-button" type="submit"><span>Recognize sign</span><span aria-hidden="true">↗</span></button>
     </form>
-    <section class="result-card" aria-live="polite" aria-atomic="true"><div class="result-top"><span class="result-icon">✦</span><div><strong id="result-title">Ready when you are</strong><p id="result-message">Your prediction will appear here.</p></div></div><div class="result-detail" id="result-detail" hidden></div></section>
-    <p class="privacy-note"><span>◇</span> Upload a photo you have permission to use. The model's output may be incorrect and should be verified.</p>
+    <section class="result-card" aria-live="polite" aria-atomic="true"><div class="result-top"><span class="result-icon">✦</span><div><strong id="result-title">Ready when you are</strong><p id="result-message">Capture a photo or upload an image to begin.</p></div></div><div class="result-detail" id="result-detail" hidden></div></section>
+    <p class="privacy-note"><span>◇</span> Your browser asks permission before camera access. Recognition quality depends on the trained model and image quality.</p>
   </section>
 </main>
 <footer><span>BhSL Studio</span><span>Built to support inclusive communication</span></footer>
