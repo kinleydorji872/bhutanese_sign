@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 import tensorflow as tf
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parent.parent
 MODEL_CONFIG = {
     "digits": {
         "model": ROOT / "models" / "digits.keras",
