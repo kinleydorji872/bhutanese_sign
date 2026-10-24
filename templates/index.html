@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#102a43">
+  <title>Bhutanese Sign Language | Recognition Studio</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="/" aria-label="Home"><span class="brand-mark">འ</span><span><strong>BhSL Studio</strong><small>BHUTANESE SIGN LANGUAGE</small></span></a>
+  <div class="status"><span class="status-dot"></span> Image recognition</div>
+</header>
+<main class="layout">
+  <section class="intro">
+    <div class="eyebrow"><span class="eyebrow-line"></span> ACCESSIBILITY THROUGH TECHNOLOGY</div>
+    <h1>Every gesture<br>has a <em>voice.</em></h1>
+    <p class="intro-copy">Upload a sign image and let the recognition model help interpret it. Designed for desktop and mobile.</p>
+    <div class="trust-row"><span>01&nbsp; Upload image</span><span>02&nbsp; Analyze sign</span><span>03&nbsp; View result</span></div>
+    <div class="decor decor-one"></div><div class="decor decor-two"></div>
+  </section>
+  <section class="workspace">
+    <div class="section-heading"><div><span class="step">01</span><h2>Recognition workspace</h2></div><span class="pill">BETA</span></div>
+    <p class="subheading">Add a clear photo of one hand making a sign.</p>
+    <form id="recognition-form">
+      <label for="mode">SIGN CATEGORY</label>
+      <select id="mode" name="mode"><option value="digits">Digits · 0–9</option><option value="alphabet">Alphabet · A–Z (requires alphabet model)</option></select>
+      <label class="upload-label" for="image">SIGN IMAGE</label>
+      <input id="image" name="image" type="file" accept="image/jpeg,image/png,image/webp" required hidden>
+      <label class="dropzone" id="dropzone" for="image"><span class="upload-icon">↑</span><strong>Drop your image here</strong><span class="muted">or <u>browse files</u> from your device</span><span class="file-hint">JPG, PNG or WEBP · up to 4 MB</span></label>
+      <div class="preview-wrap" id="preview-wrap" hidden><img id="preview" alt="Preview of the selected hand sign"><div class="preview-meta"><span id="file-name"></span><button type="button" class="text-button" id="remove-image">Remove</button></div></div>
+      <button class="primary-button" id="submit-button" type="submit"><span>Recognize sign</span><span aria-hidden="true">↗</span></button>
+    </form>
+    <section class="result-card" aria-live="polite" aria-atomic="true"><div class="result-top"><span class="result-icon">✦</span><div><strong id="result-title">Ready when you are</strong><p id="result-message">Your prediction will appear here.</p></div></div><div class="result-detail" id="result-detail" hidden></div></section>
+    <p class="privacy-note"><span>◇</span> Upload a photo you have permission to use. The model's output may be incorrect and should be verified.</p>
+  </section>
+</main>
+<footer><span>BhSL Studio</span><span>Built to support inclusive communication</span></footer>
+<script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+</body>
+</html>
